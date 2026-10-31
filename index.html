@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nosso Refúgio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Playfair Display', 'serif'],
+                    },
+                    colors: {
+                        'brand-blue': '#1e3a8a', // Deep Blue
+                        'brand-purple': '#7e22ce', // Vibrant Purple
+                        'dark-bg': '#0f172a',
+                        'card-bg': 'rgba(30, 41, 59, 0.7)',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body {
+            background: linear-gradient(135deg, #020617 0%, #0f172a 50%, #171124 100%);
+            background-attachment: fixed;
+            color: #f8fafc;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .poem-text {
+            white-space: pre-wrap;
+            line-height: 1.8;
+        }
+
+        /* Custom Scrollbar for a cleaner look */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(126, 34, 206, 0.3);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(126, 34, 206, 0.5);
+        }
+
+        /* Smooth fade transitions */
+        .fade-enter {
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+        .fade-enter-active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Hide scrollbar for memories */
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Floating heart animation for double tap */
+        @keyframes floatUp {
+            0% { transform: translate(-50%, -50%) scale(0.8); opacity: 1; }
+            50% { transform: translate(-50%, -100px) scale(1.2); opacity: 0.8; }
+            100% { transform: translate(-50%, -150px) scale(1.5); opacity: 0; }
+        }
+        .floating-heart {
+            position: absolute;
+            color: #d8b4fe; /* brand-purple lighter */
+            font-size: 2rem;
+            pointer-events: none;
+            animation: floatUp 1s ease-out forwards;
+            z-index: 100;
+            text-shadow: 0 0 10px rgba(126, 34, 206, 0.5);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex justify-center antialiased selection:bg-brand-purple selection:text-white relative overflow-hidden">
+
+    <!-- Fireflies Canvas Background -->
+    <canvas id="fireflies-canvas" class="fixed inset-0 pointer-events-none z-0 opacity-60"></canvas>
+
+    <!-- App Container (Mobile constrained for better UX everywhere) -->
+    <div class="w-full max-w-md min-h-screen relative flex flex-col shadow-2xl bg-dark-bg/40 z-10">
+        
+        <!-- ================= LOGIN SCREEN ================= -->
+        <div id="login-screen" class="flex-1 flex flex-col justify-center items-center p-8 fade-enter-active">
+            <div class="text-center mb-10">
+                <i class="fa-solid fa-moon text-4xl text-brand-purple mb-4 opacity-80"></i>
+                <h1 class="text-3xl font-serif font-semibold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
+                    Nosso Refúgio
+                </h1>
+                <p class="text-slate-400 mt-2 text-sm font-light">Um espaço só nosso.</p>
+            </div>
+            
+            <div class="w-full max-w-xs space-y-6 glass-panel p-6 rounded-2xl">
+                <div>
+                    <label for="password" class="block text-xs uppercase tracking-wider text-slate-400 mb-2 ml-1">Senha de Acesso</label>
+                    <input type="password" id="password" inputmode="numeric" placeholder="••••" 
+                           class="w-full bg-slate-900/50 border border-slate-700 text-center text-2xl tracking-widest rounded-xl px-4 py-3 focus:outline-none focus:border-brand-purple focus:ring-1 focus:ring-brand-purple transition-colors text-white placeholder-slate-600">
+                </div>
+                <button onclick="handleLogin()" class="w-full bg-gradient-to-r from-brand-blue to-brand-purple hover:opacity-90 text-white font-medium py-3 rounded-xl shadow-lg shadow-purple-900/20 transition-all active:scale-95">
+                    Entrar
+                </button>
+            </div>
+        </div>
+
+        <!-- ================= MAIN DASHBOARD ================= -->
+        <div id="main-screen" class="hidden flex-1 flex-col h-full fade-enter">
+            <!-- Header -->
+            <header class="pt-12 pb-6 px-6 sticky top-0 z-10 glass-panel border-b-0 border-slate-800/50 rounded-b-3xl shadow-md">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p id="user-greeting" class="text-sm text-slate-400 font-light">Olá,</p>
+                        <h2 class="text-xl font-serif text-white">Cartas e Poesias</h2>
+                        <p id="love-counter" class="text-xs text-brand-purple mt-1 font-medium hidden">
+                            <i class="fa-solid fa-heart text-[10px] mr-1"></i> <span id="days-count">0</span> dias de amor
+                        </p>
+                    </div>
+                    <button onclick="logout()" class="w-10 h-10 rounded-full bg-slate-800/50 flex items-center justify-center text-slate-400 hover:text-white transition-colors">
+                        <i class="fa-solid fa-arrow-right-from-bracket text-sm"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Feed -->
+            <main class="flex-1 overflow-y-auto p-6 pb-[200px] flex flex-col" id="dashboard-main">
+                
+                <!-- Memórias (Fotos) -->
+                <div class="mb-8">
+                    <div class="flex justify-between items-center mb-3 ml-1">
+                        <h3 class="text-xs uppercase tracking-widest text-slate-400 font-semibold flex items-center gap-2">
+                            <i class="fa-solid fa-camera-retro text-brand-purple"></i> Nossas Memórias
+                        </h3>
+                    </div>
+                    
+                    <!-- Input oculto para upload de arquivo -->
+                    <input type="file" id="photo-upload" accept="image/*" class="hidden" onchange="handlePhotoUpload(event)">
+                    
+                    <div class="flex overflow-x-auto gap-4 pb-2 snap-x hide-scrollbar" id="memories-container">
+                        <!-- Fotos dinâmicas serão injetadas aqui -->
+                    </div>
+                </div>
+
+                <!-- ================= WIDGETS INTERATIVOS ================= -->
+                <div class="grid grid-cols-2 gap-4 mb-8">
+                    <!-- Surpresa do Dia -->
+                    <div onclick="openRandomNote()" class="glass-panel p-4 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer hover:bg-brand-purple/20 transition-colors border border-brand-purple/30 group">
+                        <i class="fa-solid fa-envelope-open-text text-2xl text-brand-purple mb-2 group-hover:scale-110 transition-transform"></i>
+                        <h4 class="text-white font-serif text-sm">Surpresa</h4>
+                        <p class="text-[9px] text-slate-400 uppercase tracking-wider mt-1">Bilhete de amor</p>
+                    </div>
+                    
+                    <!-- Mood Tracker -->
+                    <div onclick="openMoodSelector()" class="glass-panel p-4 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer hover:bg-brand-blue/20 transition-colors border border-brand-blue/30 group">
+                        <i class="fa-regular fa-face-smile text-2xl text-blue-400 mb-2 group-hover:scale-110 transition-transform"></i>
+                        <h4 class="text-white font-serif text-sm">Como está?</h4>
+                        <p class="text-[9px] text-slate-400 uppercase tracking-wider mt-1">Me conte hoje</p>
+                    </div>
+                </div>
+
+                <div class="space-y-4" id="poem-list">
+                    <!-- Poems will be injected here -->
+                </div>
+            </main>
+
+            <!-- FAB (Floating Action Button) for Kauã -->
+            <button id="add-fab" onclick="openAddModal()" class="hidden absolute bottom-[190px] right-6 w-14 h-14 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full shadow-lg shadow-purple-900/40 text-white flex items-center justify-center text-xl hover:scale-105 active:scale-95 transition-transform z-20">
+                <i class="fa-solid fa-pen-nib"></i>
+            </button>
+
+            <!-- ================= MUSIC PLAYER ================= -->
+            <div class="absolute bottom-0 left-0 w-full p-3 z-20 bg-dark-bg/90 backdrop-blur-lg border-t border-slate-800 rounded-b-3xl">
+                <iframe width="100%" height="150" scrolling="no" frameborder="no" allow="autoplay; encrypted-media" style="border-radius: 10px; overflow: hidden;" src="https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/soundcloud%253Atracks%253A683381111&color=%237e22ce&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true&visual=true"></iframe><div style="font-size: 10px; color: #cccccc;line-break: anywhere;word-break: normal;overflow: hidden;white-space: nowrap;text-overflow: ellipsis; font-family: Interstate,Lucida Grande,Lucida Sans Unicode,Lucida Sans,Garuda,Verdana,Tahoma,sans-serif;font-weight: 100; margin-top: 4px; text-align: center;"><a href="https://soundcloud.com/chapeudepalha" title="Chapéu de Palha" target="_blank" style="color: #cccccc; text-decoration: none;">Chapéu de Palha</a> · <a href="https://soundcloud.com/chapeudepalha/querida" title="Querida" target="_blank" style="color: #cccccc; text-decoration: none;">Querida</a></div>
+            </div>
+        </div>
+
+        <!-- ================= ADD POEM MODAL ================= -->
+        <div id="add-modal" class="hidden fixed inset-0 z-50 flex justify-center items-end sm:items-center bg-black/60 backdrop-blur-sm">
+            <div class="w-full max-w-md bg-slate-900 h-[85vh] sm:h-auto sm:max-h-[90vh] rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col transform transition-transform translate-y-full" id="add-modal-content">
+                <div class="flex justify-between items-center p-6 border-b border-slate-800">
+                    <h3 id="modal-title" class="text-lg font-serif text-white">Escrever Novo</h3>
+                    <button onclick="closeAddModal()" class="text-slate-400 hover:text-white p-2">
+                        <i class="fa-solid fa-xmark text-xl"></i>
+                    </button>
+                </div>
+                <div class="p-6 overflow-y-auto flex-1 flex flex-col space-y-4">
+                    <input type="text" id="new-title" placeholder="Título da poesia..." class="w-full bg-transparent border-none text-xl font-serif text-white placeholder-slate-600 focus:outline-none focus:ring-0">
+                    <div class="h-px w-full bg-gradient-to-r from-brand-blue/50 to-brand-purple/50"></div>
+                    <textarea id="new-content" placeholder="Deixe seu coração falar aqui..." class="w-full flex-1 min-h-[300px] bg-transparent border-none resize-none text-slate-300 font-sans text-base leading-relaxed placeholder-slate-600 focus:outline-none focus:ring-0"></textarea>
+                </div>
+                <div class="p-6 border-t border-slate-800">
+                    <button onclick="savePoem()" class="w-full bg-gradient-to-r from-brand-blue to-brand-purple text-white font-medium py-3 rounded-xl shadow-lg transition-all active:scale-95">
+                        Guardar Poesia
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= VIEW POEM MODAL ================= -->
+        <div id="view-modal" class="hidden fixed inset-0 z-50 flex justify-center items-center bg-black/80 backdrop-blur-md">
+            <div class="w-full h-full max-w-md bg-dark-bg flex flex-col shadow-2xl relative overflow-hidden" id="view-modal-content">
+                <!-- Decorative background elements -->
+                <div class="absolute top-0 left-0 w-full h-64 bg-gradient-to-b from-brand-purple/10 to-transparent pointer-events-none"></div>
+                <div class="absolute -top-20 -right-20 w-64 h-64 bg-brand-blue/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                <div class="flex justify-between items-center p-6 relative z-10 pt-12">
+                    <div class="flex items-center gap-4">
+                        <button onclick="closeViewModal()" class="w-10 h-10 rounded-full bg-slate-800/50 flex items-center justify-center text-slate-300 hover:text-white transition-colors backdrop-blur-sm">
+                            <i class="fa-solid fa-arrow-left"></i>
+                        </button>
+                        <span id="view-date" class="text-xs text-slate-500 uppercase tracking-widest font-semibold"></span>
+                    </div>
+                    
+                    <!-- Ações exclusivas do Kauã (Editar/Excluir) -->
+                    <div id="author-actions" class="hidden flex items-center gap-2">
+                        <button onclick="editCurrentPoem()" class="w-10 h-10 rounded-full bg-blue-900/40 text-blue-400 hover:bg-blue-800/60 transition-colors flex items-center justify-center">
+                            <i class="fa-solid fa-pen text-sm"></i>
+                        </button>
+                        <button onclick="deleteCurrentPoem()" class="w-10 h-10 rounded-full bg-red-900/40 text-red-400 hover:bg-red-800/60 transition-colors flex items-center justify-center">
+                            <i class="fa-solid fa-trash text-sm"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="flex-1 overflow-y-auto p-8 pt-2 relative z-10 pb-20" id="view-scroll-area">
+                    <h2 id="view-title" class="text-3xl font-serif text-white mb-8 text-center leading-tight"></h2>
+                    <div id="view-content" class="poem-text text-slate-300 font-sans text-[1.05rem] md:text-lg text-center md:text-left mx-auto max-w-[90%] md:max-w-full cursor-pointer" title="Dê dois toques rápidos para enviar amor!"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= TOAST NOTIFICATION ================= -->
+        <div id="toast" class="fixed top-4 left-1/2 transform -translate-x-1/2 bg-slate-800 border border-slate-700 text-white px-6 py-3 rounded-full shadow-2xl flex items-center space-x-3 opacity-0 pointer-events-none transition-opacity duration-300 z-[100]">
+            <i id="toast-icon" class="fa-solid fa-circle-info text-brand-purple"></i>
+            <span id="toast-msg" class="text-sm font-medium"></span>
+        </div>
+
+        <!-- ================= BIRTHDAY MODAL ================= -->
+        <div id="birthday-modal" class="hidden fixed inset-0 z-[60] flex justify-center items-center bg-black/90 backdrop-blur-md px-4 fade-enter">
+            <div class="w-full max-w-sm bg-gradient-to-br from-slate-900 to-slate-800 p-8 rounded-3xl shadow-2xl border border-brand-purple/30 text-center relative overflow-hidden">
+                <div class="absolute -top-10 -left-10 w-32 h-32 bg-brand-purple/20 rounded-full blur-2xl"></div>
+                <div class="absolute -bottom-10 -right-10 w-32 h-32 bg-brand-blue/20 rounded-full blur-2xl"></div>
+                
+                <i class="fa-solid fa-gift text-5xl text-brand-purple mb-6 animate-bounce"></i>
+                <h2 class="text-2xl font-serif text-white mb-4">Feliz Aniversário, Meu Amor! 🎉</h2>
+                <p class="text-slate-300 font-sans text-sm leading-relaxed mb-6">
+                    Hoje é o dia da garota mais incrível que eu conheço. Sou imensamente grato por cada sorriso, cada momento e por todo o amor que você trouxe para a minha vida. Que o seu dia seja tão lindo quanto você, Lanna. Eu te amo demais! 💜
+                </p>
+                <button onclick="closeBirthdayModal()" class="bg-gradient-to-r from-brand-blue to-brand-purple text-white px-8 py-3 rounded-full font-medium shadow-lg hover:scale-105 active:scale-95 transition-all">
+                    Ler Meus Poemas
+                </button>
+            </div>
+        </div>
+
+        <!-- ================= RANDOM NOTE MODAL ================= -->
+        <div id="note-modal" class="hidden fixed inset-0 z-[60] flex justify-center items-center bg-black/80 backdrop-blur-sm px-4">
+            <div class="w-full max-w-sm bg-gradient-to-br from-indigo-950 to-purple-950 p-8 rounded-3xl shadow-2xl border border-brand-purple/40 text-center transform transition-transform scale-90 opacity-0" id="note-content">
+                <i class="fa-solid fa-quote-left text-3xl text-brand-purple/50 mb-4"></i>
+                <p id="random-note-text" class="text-white font-serif text-lg leading-relaxed mb-6"></p>
+                <i class="fa-solid fa-quote-right text-3xl text-brand-purple/50 mt-2 mb-6"></i>
+                <br>
+                <button onclick="closeNoteModal()" class="w-full bg-white/10 hover:bg-white/20 text-white py-3 rounded-xl transition-colors font-medium border border-white/10">
+                    Guardar no coração
+                </button>
+            </div>
+        </div>
+
+        <!-- ================= MOOD SELECTOR MODAL ================= -->
+        <div id="mood-modal" class="hidden fixed inset-0 z-[60] flex justify-center items-end sm:items-center bg-black/80 backdrop-blur-sm">
+            <div class="w-full max-w-md bg-slate-900 rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col transform transition-transform translate-y-full p-6 border-t border-slate-800" id="mood-content">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-serif text-white">Como você se sente hoje?</h3>
+                    <button onclick="closeMoodModal()" class="text-slate-400 hover:text-white">
+                        <i class="fa-solid fa-xmark text-xl"></i>
+                    </button>
+                </div>
+                
+                <div id="mood-options" class="grid grid-cols-2 gap-4 mb-4">
+                    <button onclick="selectMood('feliz')" class="glass-panel p-4 rounded-xl flex flex-col items-center gap-2 hover:bg-green-900/30 transition-colors border border-transparent hover:border-green-500/30">
+                        <span class="text-3xl">🥰</span>
+                        <span class="text-sm text-slate-300">Feliz</span>
+                    </button>
+                    <button onclick="selectMood('triste')" class="glass-panel p-4 rounded-xl flex flex-col items-center gap-2 hover:bg-blue-900/30 transition-colors border border-transparent hover:border-blue-500/30">
+                        <span class="text-3xl">🥺</span>
+                        <span class="text-sm text-slate-300">Tristezinha</span>
+                    </button>
+                    <button onclick="selectMood('cansada')" class="glass-panel p-4 rounded-xl flex flex-col items-center gap-2 hover:bg-orange-900/30 transition-colors border border-transparent hover:border-orange-500/30">
+                        <span class="text-3xl">😴</span>
+                        <span class="text-sm text-slate-300">Cansada</span>
+                    </button>
+                    <button onclick="selectMood('saudade')" class="glass-panel p-4 rounded-xl flex flex-col items-center gap-2 hover:bg-purple-900/30 transition-colors border border-transparent hover:border-purple-500/30">
+                        <span class="text-3xl">❤️‍🔥</span>
+                        <span class="text-sm text-slate-300">Com Saudade</span>
+                    </button>
+                </div>
+
+                <div id="mood-response" class="hidden bg-brand-purple/10 border border-brand-purple/30 rounded-xl p-5 text-center mt-2">
+                    <p id="mood-response-text" class="text-slate-200 text-sm leading-relaxed"></p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- State Management ---
+        const ROLES = {
+            LANNA: '1906',
+            KAUA: '3110'
+        };
+
+        let currentUserRole = null; // 'lanna' | 'kaua'
+        let currentViewedPoemId = null;
+        let editingPoemId = null;
+
+        // Base date for the love counter (Ex: 19 de Junho de 2023)
+        const anniversaryDate = new Date('2023-06-19T00:00:00');
+
+        // Initial memories placeholder
+        let memories = [
+            { id: 1, url: 'https://placehold.co/220x280/1e293b/7e22ce?text=Nossa+Foto' },
+            { id: 2, url: 'https://placehold.co/220x280/1e293b/7e22ce?text=Amor' }
+        ];
+
+        // Pre-loaded initial poems (The ones generated previously)
+        let poems = [
+            {
+                id: 2,
+                title: "Assinaturas de Luz",
+                date: "Hoje",
+                content: `Se você soubesse a imensidão do oceano que transborda em mim\ntoda vez que meus olhos encontram os seus,\nentenderia que meu mundo só ganhou cor e norte\nno instante em que você segurou a minha mão.\n\nA minha gratidão por você é um sentimento sem margens:\nvocê chegou para transformar meus dias em abrigo,\nfazendo de mim a melhor versão que eu poderia ser.\n\nÀs vezes vejo você se olhar no espelho e apontar pequenas incertezas,\ndesenhando com os dedos o que teima em chamar de imperfeição.\nMas se você pudesse enxergar através do meu olhar,\nveria que essas marcas são apenas assinaturas de luz,\ndetalhes únicos que tornam você absolutamente perfeita para mim.\nOnde você enxerga uma falha, eu vejo mais uma razão,\nmais um detalhe lindo para me apaixonar de novo.\n\nTe amar não é um estado estático; é um movimento que não para.\nA cada manhã, encontro em você uma nova poesia.\nA cada riso seu, meu peito se enche de uma paz profunda e bonita.\n\nE assim, dia após dia, sinto esse sentimento ganhar raiz e asas:\num amor que só sabe crescer, se multiplicar e se aprofundar,\ncada vez mais, e mais, e para sempre.\n\nObrigado por tudo o que você é e por tudo o que trouxe à minha vida.\nEu te amo além de qualquer medida, em cada detalhe, com toda a minha alma.`
+            },
+            {
+                id: 1,
+                title: "O Templo Indestrutível",
+                date: "Há pouco tempo",
+                content: `Fomos arquitetos imprevisíveis do próprio naufrágio,\nesculpindo tempestades onde devia haver mar calmo.\nNossos erros caíram como lâminas afiadas sobre o mármore,\ntrincando a estrutura do pilar que sustentava o nosso altar.\n\nTrocamos a mansidão por espinhos e a escuta por trovões,\naté que o incêndio do orgulho consumiu a nossa casa.\nVeio a ruína e, com ela, o abismo do término.\n\nTornamo-nos ilhas distantes em oceanos de gelo,\norbitando o vácuo de um silêncio cortante e denso.\nAtravessamos um eclipse longo, um deserto de cinzas...\n\nMas a terra que parecia morta guardava uma brasa acesa.\nO tempo, esse mestre em desfazeres e costuras,\nlapidou nossas arestas nas pedras duras da solidão.\n\nE quando a vida nos colocou frente a frente outra vez,\nnão éramos mais os mesmos espelhos quebrados,\nmas mãos prontas para transformar ruína em alicerce.\nVoltamos sobre as próprias pegadas, não por carência,\nmas pela certeza da raiz que nunca deixou de respirar.\n\nDecidimos banhar nossas cicatrizes em ouro,\ncompreendendo que o erro do passado virou o adubo do presente.\nE erguemos, sobre os escombros do que fomos, um templo indestrutível.\n\nAgora, somos dois rios que desaguaram na mesma foz.\nSeguiremos assim, entalhando o nosso amor no tempo,\nentrelaçados até o último suspiro, até o fim de todos os dias.`
+            }
+        ];
+
+        // --- Novas Funcionalidades: Textos ---
+        const randomNotes = [
+            "Seu sorriso é a parte favorita do meu dia.",
+            "Não existe lugar no mundo que eu prefira estar do que ao seu lado.",
+            "Você é a poesia mais linda que a vida já escreveu para mim.",
+            "Sempre que fecho os olhos, é o seu rosto que eu vejo. Te amo!",
+            "Com você, até os dias mais simples parecem mágicos.",
+            "Você é o meu refúgio seguro, Lanna."
+        ];
+
+        const moodMessages = {
+            'feliz': "Ver você feliz é o que me faz feliz! Esse seu sorriso lindo ilumina o meu mundo todinho. Continue brilhando, meu amor! ✨💜",
+            'triste': "Ei princesa, não fica assim. Eu tô aqui pra você sempre, não importa o que aconteça. Queria te dar um abraço bem apertado agora. Vai ficar tudo bem, eu te amo infinito! 🥺🫂",
+            'cansada': "Meu amor trabalha e se esforça tanto... Vai descansar um pouquinho! Queria tá aí pra te fazer uma massagem e cuidar de você. Repõe essas energias! 💆‍♀️💕",
+            'saudade': "Eu também tô morrendo de saudade! Os minutos longe de você parecem horas. Logo logo a gente tá junto de novo pra eu te encher de beijos! 👩‍❤️‍👨💖"
+        };
+
+        // --- DOM Elements ---
+        const screens = {
+            login: document.getElementById('login-screen'),
+            main: document.getElementById('main-screen')
+        };
+        const passInput = document.getElementById('password');
+        const poemListEl = document.getElementById('poem-list');
+        const addFab = document.getElementById('add-fab');
+        const userGreeting = document.getElementById('user-greeting');
+        
+        // Modals
+        const addModal = document.getElementById('add-modal');
+        const addModalContent = document.getElementById('add-modal-content');
+        const viewModal = document.getElementById('view-modal');
+        const authorActions = document.getElementById('author-actions');
+        const birthdayModal = document.getElementById('birthday-modal');
+        const modalTitle = document.getElementById('modal-title');
+        
+        // Novas modais
+        const noteModal = document.getElementById('note-modal');
+        const noteContent = document.getElementById('note-content');
+        const moodModal = document.getElementById('mood-modal');
+        const moodContent = document.getElementById('mood-content');
+        
+        const memoriesContainer = document.getElementById('memories-container');
+        const photoUploadInput = document.getElementById('photo-upload');
+        const viewScrollArea = document.getElementById('view-scroll-area');
+
+        // Toast
+        const toastEl = document.getElementById('toast');
+        const toastMsg = document.getElementById('toast-msg');
+        const toastIcon = document.getElementById('toast-icon');
+
+        // --- Auth Logic ---
+        function handleLogin() {
+            const pwd = passInput.value.trim();
+            if (pwd === ROLES.LANNA) {
+                currentUserRole = 'lanna';
+                startApp("Meu amor");
+            } else if (pwd === ROLES.KAUA) {
+                currentUserRole = 'kaua';
+                startApp("Poeta Kauã");
+            } else {
+                showToast('Senha incorreta, tente novamente.', 'error');
+                passInput.value = '';
+                // Shake animation for error
+                passInput.classList.add('translate-x-2');
+                setTimeout(() => passInput.classList.remove('translate-x-2'), 100);
+                setTimeout(() => passInput.classList.add('-translate-x-2'), 200);
+                setTimeout(() => passInput.classList.remove('-translate-x-2'), 300);
+            }
+        }
+
+        passInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') handleLogin();
+        });
+
+        function startApp(greeting) {
+            userGreeting.textContent = `Olá, ${greeting}`;
+            screens.login.classList.add('hidden');
+            screens.main.classList.remove('hidden');
+            screens.main.classList.add('flex');
+            
+            // CORREÇÃO: Ativa a animação para a tela aparecer (opacidade 1)
+            setTimeout(() => {
+                screens.main.classList.add('fade-enter-active');
+            }, 10);
+            
+            if (currentUserRole === 'kaua') {
+                addFab.classList.remove('hidden');
+            } else {
+                addFab.classList.add('hidden');
+            }
+            
+            calculateDays();
+            renderMemories();
+            renderPoems();
+            checkBirthday();
+            initFireflies(); // Inicia a mágica no fundo
+        }
+
+        function calculateDays() {
+            const today = new Date();
+            const diffTime = Math.abs(today - anniversaryDate);
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            
+            document.getElementById('days-count').textContent = diffDays;
+            document.getElementById('love-counter').classList.remove('hidden');
+        }
+
+        function checkBirthday() {
+            const today = new Date();
+            // Mês em JS começa do 0 (Janeiro = 0, Outubro = 9)
+            if (today.getMonth() === 9 && today.getDate() === 31) {
+                setTimeout(() => {
+                    birthdayModal.classList.remove('hidden');
+                    setTimeout(() => birthdayModal.classList.add('fade-enter-active'), 10);
+                }, 800); // Wait a bit after login animation
+            }
+        }
+
+        function closeBirthdayModal() {
+            birthdayModal.classList.remove('fade-enter-active');
+            setTimeout(() => birthdayModal.classList.add('hidden'), 400);
+        }
+
+        function logout() {
+            currentUserRole = null;
+            passInput.value = '';
+            
+            // CORREÇÃO: Faz a animação reversa antes de esconder
+            screens.main.classList.remove('fade-enter-active');
+            
+            setTimeout(() => {
+                screens.main.classList.add('hidden');
+                screens.main.classList.remove('flex');
+                screens.login.classList.remove('hidden');
+            }, 400);
+        }
+
+        // --- Render Logic ---
+        function renderMemories() {
+            memoriesContainer.innerHTML = '';
+
+            // Botão de Adicionar (Apenas para o Kauã)
+            if (currentUserRole === 'kaua') {
+                const addBtn = document.createElement('div');
+                addBtn.className = "min-w-[110px] h-[140px] rounded-2xl border-2 border-dashed border-slate-600 flex flex-col items-center justify-center snap-center cursor-pointer hover:bg-slate-800/50 hover:border-brand-purple transition-all flex-shrink-0 text-slate-400 hover:text-brand-purple";
+                addBtn.onclick = () => photoUploadInput.click();
+                addBtn.innerHTML = `<i class="fa-solid fa-plus text-2xl mb-2"></i><span class="text-[10px] uppercase tracking-widest font-semibold">Nova</span>`;
+                memoriesContainer.appendChild(addBtn);
+            }
+
+            // Fotos
+            memories.forEach(mem => {
+                const imgCard = document.createElement('div');
+                imgCard.className = "min-w-[110px] h-[140px] rounded-2xl overflow-hidden snap-center shadow-lg border border-slate-700/50 relative flex-shrink-0 bg-slate-800 group";
+                
+                let deleteBtnHtml = '';
+                if (currentUserRole === 'kaua') {
+                    deleteBtnHtml = `
+                        <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer" onclick="deleteMemory(${mem.id})">
+                            <i class="fa-solid fa-trash text-red-400 text-xl"></i>
+                        </div>
+                    `;
+                }
+
+                imgCard.innerHTML = `
+                    <img src="${mem.url}" alt="Memória" class="w-full h-full object-cover">
+                    ${deleteBtnHtml}
+                `;
+                memoriesContainer.appendChild(imgCard);
+            });
+        }
+
+        function handlePhotoUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                // Cria uma URL temporária para visualização da foto
+                const tempUrl = URL.createObjectURL(file);
+                
+                const newMem = {
+                    id: Date.now(),
+                    url: tempUrl
+                };
+                
+                memories.unshift(newMem);
+                renderMemories();
+                showToast('Foto adicionada!', 'success');
+            }
+            // Reset input
+            event.target.value = '';
+        }
+
+        function deleteMemory(id) {
+            memories = memories.filter(m => m.id !== id);
+            renderMemories();
+            showToast('Foto removida.', 'info');
+        }
+
+        function renderPoems() {
+            poemListEl.innerHTML = '';
+            
+            if (poems.length === 0) {
+                poemListEl.innerHTML = `
+                    <div class="flex flex-col items-center justify-center h-48 opacity-50">
+                        <i class="fa-solid fa-feather-pointed text-3xl mb-3"></i>
+                        <p class="font-serif">Nenhuma poesia escrita ainda.</p>
+                    </div>`;
+                return;
+            }
+
+            poems.forEach((poem, index) => {
+                const delay = index * 100; // Staggered entrance
+                const card = document.createElement('div');
+                card.className = `glass-panel rounded-2xl p-5 cursor-pointer hover:bg-slate-800/80 transition-all active:scale-[0.98] transform translate-y-4 opacity-0`;
+                card.style.animation = `fadeUp 0.5s ease forwards ${delay}ms`;
+                
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="text-[10px] uppercase tracking-widest text-brand-purple font-semibold">${poem.date}</span>
+                        <i class="fa-solid fa-heart text-slate-700 text-xs"></i>
+                    </div>
+                    <h3 class="text-xl font-serif text-white mb-2">${poem.title}</h3>
+                    <p class="text-slate-400 text-sm line-clamp-2 font-light">${poem.content.replace(/\n/g, ' ')}</p>
+                `;
+                
+                card.onclick = () => openViewModal(poem.id);
+                poemListEl.appendChild(card);
+            });
+        }
+
+        // --- Add Poem Logic ---
+        function openAddModal() {
+            editingPoemId = null;
+            modalTitle.textContent = "Escrever Novo";
+            document.getElementById('new-title').value = '';
+            document.getElementById('new-content').value = '';
+
+            addModal.classList.remove('hidden');
+            // Trigger animation
+            setTimeout(() => {
+                addModalContent.classList.remove('translate-y-full');
+            }, 10);
+            document.getElementById('new-title').focus();
+        }
+
+        function closeAddModal() {
+            addModalContent.classList.add('translate-y-full');
+            setTimeout(() => {
+                addModal.classList.add('hidden');
+                document.getElementById('new-title').value = '';
+                document.getElementById('new-content').value = '';
+            }, 300);
+        }
+
+        function savePoem() {
+            const title = document.getElementById('new-title').value.trim();
+            const content = document.getElementById('new-content').value.trim();
+            
+            if (!title || !content) {
+                showToast('Preencha o título e a poesia.', 'error');
+                return;
+            }
+
+            if (editingPoemId) {
+                // Atualizar existente
+                const poemIndex = poems.findIndex(p => p.id === editingPoemId);
+                if (poemIndex > -1) {
+                    poems[poemIndex].title = title;
+                    poems[poemIndex].content = content;
+                }
+                showToast('Poesia atualizada!', 'success');
+            } else {
+                // Criar novo
+                const now = new Date();
+                const dateStr = `${now.getDate().toString().padStart(2, '0')}/${(now.getMonth()+1).toString().padStart(2, '0')}/${now.getFullYear()}`;
+
+                const newPoem = {
+                    id: Date.now(),
+                    title: title,
+                    date: dateStr,
+                    content: content
+                };
+
+                // Add to top of array
+                poems.unshift(newPoem);
+                showToast('Poesia guardada com sucesso!', 'success');
+            }
+            
+            closeAddModal();
+            renderPoems();
+        }
+
+        // --- Edit / Delete Logic ---
+        function editCurrentPoem() {
+            const poem = poems.find(p => p.id === currentViewedPoemId);
+            if (!poem) return;
+            
+            editingPoemId = poem.id;
+            closeViewModal();
+            
+            setTimeout(() => {
+                modalTitle.textContent = "Editar Poesia";
+                document.getElementById('new-title').value = poem.title;
+                document.getElementById('new-content').value = poem.content;
+                
+                addModal.classList.remove('hidden');
+                setTimeout(() => addModalContent.classList.remove('translate-y-full'), 10);
+            }, 300);
+        }
+
+        function deleteCurrentPoem() {
+            // Apaga diretamente e mostra um toast
+            poems = poems.filter(p => p.id !== currentViewedPoemId);
+            closeViewModal();
+            renderPoems();
+            showToast('Poesia excluída.', 'info');
+        }
+
+        // --- View Poem Logic ---
+        function openViewModal(id) {
+            const poem = poems.find(p => p.id === id);
+            if (!poem) return;
+
+            currentViewedPoemId = id;
+
+            document.getElementById('view-title').textContent = poem.title;
+            document.getElementById('view-date').textContent = poem.date;
+            document.getElementById('view-content').textContent = poem.content;
+
+            // Mostra os botões de edição/exclusão apenas para o Kauã
+            if (currentUserRole === 'kaua') {
+                authorActions.classList.remove('hidden');
+                authorActions.classList.add('flex');
+            } else {
+                authorActions.classList.add('hidden');
+                authorActions.classList.remove('flex');
+            }
+
+            viewModal.classList.remove('hidden');
+            // Subtle fade in for modal background handled by Tailwind, content pops up
+            const contentEl = document.getElementById('view-modal-content');
+            contentEl.style.opacity = '0';
+            contentEl.style.transform = 'scale(0.95) translateY(10px)';
+            
+            setTimeout(() => {
+                contentEl.style.transition = 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)';
+                contentEl.style.opacity = '1';
+                contentEl.style.transform = 'scale(1) translateY(0)';
+            }, 10);
+        }
+
+        function closeViewModal() {
+            const contentEl = document.getElementById('view-modal-content');
+            contentEl.style.transform = 'scale(0.95) translateY(10px)';
+            contentEl.style.opacity = '0';
+            
+            setTimeout(() => {
+                viewModal.classList.add('hidden');
+            }, 300);
+        }
+
+        // --- Novas Lógicas (Notas, Humor, Vaga-lumes) ---
+        function openRandomNote() {
+            const randomText = randomNotes[Math.floor(Math.random() * randomNotes.length)];
+            document.getElementById('random-note-text').textContent = randomText;
+            
+            noteModal.classList.remove('hidden');
+            setTimeout(() => {
+                noteContent.classList.remove('scale-90', 'opacity-0');
+                noteContent.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+
+        function closeNoteModal() {
+            noteContent.classList.remove('scale-100', 'opacity-100');
+            noteContent.classList.add('scale-90', 'opacity-0');
+            setTimeout(() => noteModal.classList.add('hidden'), 300);
+        }
+
+        function openMoodSelector() {
+            document.getElementById('mood-options').classList.remove('hidden');
+            document.getElementById('mood-response').classList.add('hidden');
+            
+            moodModal.classList.remove('hidden');
+            setTimeout(() => moodContent.classList.remove('translate-y-full'), 10);
+        }
+
+        function selectMood(mood) {
+            document.getElementById('mood-options').classList.add('hidden');
+            const responseDiv = document.getElementById('mood-response');
+            document.getElementById('mood-response-text').textContent = moodMessages[mood];
+            
+            responseDiv.classList.remove('hidden');
+            // Animação suave para a resposta
+            responseDiv.style.opacity = 0;
+            setTimeout(() => {
+                responseDiv.style.transition = 'opacity 0.5s';
+                responseDiv.style.opacity = 1;
+            }, 50);
+        }
+
+        function closeMoodModal() {
+            moodContent.classList.add('translate-y-full');
+            setTimeout(() => moodModal.classList.add('hidden'), 300);
+        }
+
+        // Sistema de Partículas (Vaga-lumes)
+        function initFireflies() {
+            const canvas = document.getElementById('fireflies-canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            const particlesArray = [];
+            const numberOfParticles = window.innerWidth < 600 ? 40 : 80;
+
+            class Particle {
+                constructor() {
+                    this.x = Math.random() * canvas.width;
+                    this.y = Math.random() * canvas.height;
+                    this.size = Math.random() * 2 + 0.5;
+                    this.speedX = Math.random() * 1 - 0.5;
+                    this.speedY = Math.random() * 1 - 0.5;
+                    this.opacity = Math.random() * 0.5 + 0.1;
+                    this.opacityDirection = Math.random() < 0.5 ? 1 : -1;
+                }
+                update() {
+                    this.x += this.speedX;
+                    this.y += this.speedY;
+
+                    // Fade in/out
+                    this.opacity += 0.005 * this.opacityDirection;
+                    if(this.opacity >= 0.8) this.opacityDirection = -1;
+                    if(this.opacity <= 0.1) this.opacityDirection = 1;
+
+                    // Bordas infinitas
+                    if (this.x > canvas.width) this.x = 0;
+                    if (this.x < 0) this.x = canvas.width;
+                    if (this.y > canvas.height) this.y = 0;
+                    if (this.y < 0) this.y = canvas.height;
+                }
+                draw() {
+                    ctx.fillStyle = `rgba(216, 180, 254, ${this.opacity})`; // Tom de roxo
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    // Glow
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = "rgba(168, 85, 247, 0.8)";
+                }
+            }
+
+            for (let i = 0; i < numberOfParticles; i++) {
+                particlesArray.push(new Particle());
+            }
+
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                for (let i = 0; i < particlesArray.length; i++) {
+                    particlesArray[i].update();
+                    particlesArray[i].draw();
+                }
+                requestAnimationFrame(animate);
+            }
+            animate();
+
+            // Ajustar no resize
+            window.addEventListener('resize', () => {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            });
+        }
+
+
+        // --- Double Tap to Heart Feature ---
+        let lastTap = 0;
+        viewScrollArea.addEventListener('touchend', handleDoubleTap);
+        viewScrollArea.addEventListener('click', handleDoubleTap);
+
+        function handleDoubleTap(e) {
+            const currentTime = new Date().getTime();
+            const tapLength = currentTime - lastTap;
+            
+            if (tapLength < 500 && tapLength > 0) {
+                // Double tap detected!
+                e.preventDefault();
+                createFloatingHeart(e);
+            }
+            lastTap = currentTime;
+        }
+
+        function createFloatingHeart(e) {
+            const heart = document.createElement('i');
+            heart.className = 'fa-solid fa-heart floating-heart';
+            
+            // Posição baseada no clique ou toque
+            let x, y;
+            if (e.changedTouches) {
+                x = e.changedTouches[0].clientX;
+                y = e.changedTouches[0].clientY;
+            } else {
+                x = e.clientX;
+                y = e.clientY;
+            }
+
+            heart.style.left = `${x}px`;
+            heart.style.top = `${y}px`;
+            
+            document.body.appendChild(heart);
+            
+            // Remove after animation
+            setTimeout(() => {
+                heart.remove();
+            }, 1000);
+        }
+
+        // --- Utilities ---
+        let toastTimeout;
+        function showToast(message, type = 'info') {
+            toastMsg.textContent = message;
+            
+            if (type === 'error') {
+                toastIcon.className = 'fa-solid fa-circle-exclamation text-red-400';
+            } else if (type === 'success') {
+                toastIcon.className = 'fa-solid fa-heart text-brand-purple';
+            } else {
+                toastIcon.className = 'fa-solid fa-circle-info text-blue-400';
+            }
+
+            toastEl.classList.remove('opacity-0', 'pointer-events-none');
+            toastEl.classList.add('opacity-100');
+
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toastEl.classList.remove('opacity-100');
+                toastEl.classList.add('opacity-0', 'pointer-events-none');
+            }, 3000);
+        }
+
+        // --- Animations Setup ---
+        const style = document.createElement('style');
+        style.innerHTML = `
+            @keyframes fadeUp {
+                from { opacity: 0; transform: translateY(20px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+        `;
+        document.head.appendChild(style);
+
+    </script>
+</body>
+</html>
