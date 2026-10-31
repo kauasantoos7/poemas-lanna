@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nosso Refúgio</title>
+    
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -94,13 +97,13 @@
         }
     </style>
 </head>
-<body class="min-h-screen flex justify-center antialiased selection:bg-brand-purple selection:text-white relative overflow-hidden">
+<body class="h-[100dvh] w-full flex justify-center antialiased selection:bg-brand-purple selection:text-white relative overflow-hidden">
 
     <!-- Fireflies Canvas Background -->
     <canvas id="fireflies-canvas" class="fixed inset-0 pointer-events-none z-0 opacity-60"></canvas>
 
     <!-- App Container (Mobile constrained for better UX everywhere) -->
-    <div class="w-full max-w-md min-h-screen relative flex flex-col shadow-2xl bg-dark-bg/40 z-10">
+    <div class="w-full max-w-md h-full relative flex flex-col shadow-2xl bg-dark-bg/40 z-10">
         
         <!-- ================= LOGIN SCREEN ================= -->
         <div id="login-screen" class="flex-1 flex flex-col justify-center items-center p-8 fade-enter-active">
