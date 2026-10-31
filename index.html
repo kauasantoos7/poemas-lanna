@@ -326,6 +326,12 @@
     </div>
 
     <script>
+        // --- Supabase Configuração ---
+        const { createClient } = supabase;
+        const supabaseUrl = 'https://cxoeygvltvizjwnsrvro.supabase.co';
+        const supabaseKey = 'sb_publishable_m5brABKo49dw8AW_rDzWsA_iYGT1up4';
+        const supa = createClient(supabaseUrl, supabaseKey);
+
         // --- State Management ---
         const ROLES = {
             LANNA: '1906',
@@ -339,37 +345,10 @@
         // Base date for the love counter (Ex: 19 de Junho de 2023)
         const anniversaryDate = new Date('2023-06-19T00:00:00');
 
-        // Initial memories placeholder
-        let memories = [
-            { id: 1, url: 'https://placehold.co/220x280/1e293b/7e22ce?text=Nossa+Foto' },
-            { id: 2, url: 'https://placehold.co/220x280/1e293b/7e22ce?text=Amor' }
-        ];
-
-        // Pre-loaded initial poems (The ones generated previously)
-        let poems = [
-            {
-                id: 2,
-                title: "Assinaturas de Luz",
-                date: "Hoje",
-                content: `Se você soubesse a imensidão do oceano que transborda em mim\ntoda vez que meus olhos encontram os seus,\nentenderia que meu mundo só ganhou cor e norte\nno instante em que você segurou a minha mão.\n\nA minha gratidão por você é um sentimento sem margens:\nvocê chegou para transformar meus dias em abrigo,\nfazendo de mim a melhor versão que eu poderia ser.\n\nÀs vezes vejo você se olhar no espelho e apontar pequenas incertezas,\ndesenhando com os dedos o que teima em chamar de imperfeição.\nMas se você pudesse enxergar através do meu olhar,\nveria que essas marcas são apenas assinaturas de luz,\ndetalhes únicos que tornam você absolutamente perfeita para mim.\nOnde você enxerga uma falha, eu vejo mais uma razão,\nmais um detalhe lindo para me apaixonar de novo.\n\nTe amar não é um estado estático; é um movimento que não para.\nA cada manhã, encontro em você uma nova poesia.\nA cada riso seu, meu peito se enche de uma paz profunda e bonita.\n\nE assim, dia após dia, sinto esse sentimento ganhar raiz e asas:\num amor que só sabe crescer, se multiplicar e se aprofundar,\ncada vez mais, e mais, e para sempre.\n\nObrigado por tudo o que você é e por tudo o que trouxe à minha vida.\nEu te amo além de qualquer medida, em cada detalhe, com toda a minha alma.`
-            },
-            {
-                id: 1,
-                title: "O Templo Indestrutível",
-                date: "Há pouco tempo",
-                content: `Fomos arquitetos imprevisíveis do próprio naufrágio,\nesculpindo tempestades onde devia haver mar calmo.\nNossos erros caíram como lâminas afiadas sobre o mármore,\ntrincando a estrutura do pilar que sustentava o nosso altar.\n\nTrocamos a mansidão por espinhos e a escuta por trovões,\naté que o incêndio do orgulho consumiu a nossa casa.\nVeio a ruína e, com ela, o abismo do término.\n\nTornamo-nos ilhas distantes em oceanos de gelo,\norbitando o vácuo de um silêncio cortante e denso.\nAtravessamos um eclipse longo, um deserto de cinzas...\n\nMas a terra que parecia morta guardava uma brasa acesa.\nO tempo, esse mestre em desfazeres e costuras,\nlapidou nossas arestas nas pedras duras da solidão.\n\nE quando a vida nos colocou frente a frente outra vez,\nnão éramos mais os mesmos espelhos quebrados,\nmas mãos prontas para transformar ruína em alicerce.\nVoltamos sobre as próprias pegadas, não por carência,\nmas pela certeza da raiz que nunca deixou de respirar.\n\nDecidimos banhar nossas cicatrizes em ouro,\ncompreendendo que o erro do passado virou o adubo do presente.\nE erguemos, sobre os escombros do que fomos, um templo indestrutível.\n\nAgora, somos dois rios que desaguaram na mesma foz.\nSeguiremos assim, entalhando o nosso amor no tempo,\nentrelaçados até o último suspiro, até o fim de todos os dias.`
-            }
-        ];
-
-        // --- Novas Funcionalidades: Textos ---
-        const randomNotes = [
-            "Seu sorriso é a parte favorita do meu dia.",
-            "Não existe lugar no mundo que eu prefira estar do que ao seu lado.",
-            "Você é a poesia mais linda que a vida já escreveu para mim.",
-            "Sempre que fecho os olhos, é o seu rosto que eu vejo. Te amo!",
-            "Com você, até os dias mais simples parecem mágicos.",
-            "Você é o meu refúgio seguro, Lanna."
-        ];
+        // Dados do Supabase (Iniciam vazios e o banco preenche)
+        let memories = [];
+        let poems = [];
+        let randomNotes = [];
 
         const moodMessages = {
             'feliz': "Ver você feliz é o que me faz feliz! Esse seu sorriso lindo ilumina o meu mundo todinho. Continue brilhando, meu amor! ✨💜",
@@ -435,7 +414,33 @@
             if (e.key === 'Enter') handleLogin();
         });
 
-        function startApp(greeting) {
+        // Função principal para buscar dados do Supabase
+        async function loadData() {
+            try {
+                // Busca simultânea de Poemas, Fotos e Notas no Supabase
+                const [poemsRes, memoriesRes, notesRes] = await Promise.all([
+                    supa.from('poems').select('*').order('created_at', { ascending: false }),
+                    supa.from('memories').select('*').order('created_at', { ascending: false }),
+                    supa.from('random_notes').select('content')
+                ]);
+
+                if (poemsRes.data) poems = poemsRes.data;
+                if (memoriesRes.data) memories = memoriesRes.data;
+                if (notesRes.data && notesRes.data.length > 0) {
+                    randomNotes = notesRes.data.map(n => n.content);
+                } else {
+                    randomNotes = ["Você é o amor da minha vida!"]; // Fallback caso esteja vazio
+                }
+
+                renderPoems();
+                renderMemories();
+            } catch (error) {
+                console.error("Erro ao carregar do banco:", error);
+                showToast("Erro ao conectar com o banco de dados.", "error");
+            }
+        }
+
+        async function startApp(greeting) {
             userGreeting.textContent = `Olá, ${greeting}`;
             screens.login.classList.add('hidden');
             screens.main.classList.remove('hidden');
@@ -453,10 +458,11 @@
             }
             
             calculateDays();
-            renderMemories();
-            renderPoems();
             checkBirthday();
             initFireflies(); // Inicia a mágica no fundo
+            
+            showToast('Buscando nossas memórias...', 'info');
+            await loadData(); // Baixa as coisas do Supabase
         }
 
         function calculateDays() {
@@ -519,43 +525,80 @@
                 let deleteBtnHtml = '';
                 if (currentUserRole === 'kaua') {
                     deleteBtnHtml = `
-                        <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer" onclick="deleteMemory(${mem.id})">
+                        <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer" onclick="deleteMemory('${mem.id}')">
                             <i class="fa-solid fa-trash text-red-400 text-xl"></i>
                         </div>
                     `;
                 }
 
+                // Lê a URL pública do banco
+                const imageUrl = mem.image_url || mem.url;
+
                 imgCard.innerHTML = `
-                    <img src="${mem.url}" alt="Memória" class="w-full h-full object-cover">
+                    <img src="${imageUrl}" alt="Memória" class="w-full h-full object-cover">
                     ${deleteBtnHtml}
                 `;
                 memoriesContainer.appendChild(imgCard);
             });
         }
 
-        function handlePhotoUpload(event) {
+        async function handlePhotoUpload(event) {
             const file = event.target.files[0];
-            if (file) {
-                // Cria uma URL temporária para visualização da foto
-                const tempUrl = URL.createObjectURL(file);
+            if (!file) return;
+
+            showToast('Enviando para a nuvem...', 'info');
+            
+            // Gerar nome único
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+            
+            try {
+                // 1. Enviar para o Bucket no Supabase
+                const { error: uploadError } = await supa.storage
+                    .from('memories_bucket')
+                    .upload(fileName, file);
                 
-                const newMem = {
-                    id: Date.now(),
-                    url: tempUrl
-                };
+                if (uploadError) throw uploadError;
+
+                // 2. Pegar Link Público
+                const { data: publicUrlData } = supa.storage
+                    .from('memories_bucket')
+                    .getPublicUrl(fileName);
+
+                // 3. Inserir no Banco de Dados
+                const { data: insertData, error: insertError } = await supa.from('memories')
+                    .insert([{ image_url: publicUrlData.publicUrl }])
+                    .select();
+
+                if (insertError) throw insertError;
                 
-                memories.unshift(newMem);
-                renderMemories();
-                showToast('Foto adicionada!', 'success');
+                if (insertData && insertData.length > 0) {
+                    memories.unshift(insertData[0]);
+                    renderMemories();
+                }
+                showToast('Foto guardada para sempre!', 'success');
+            } catch (error) {
+                console.error("Erro no upload:", error);
+                showToast('Erro ao salvar a foto.', 'error');
             }
+            
             // Reset input
             event.target.value = '';
         }
 
-        function deleteMemory(id) {
-            memories = memories.filter(m => m.id !== id);
-            renderMemories();
-            showToast('Foto removida.', 'info');
+        async function deleteMemory(id) {
+            showToast('Removendo...', 'info');
+            try {
+                const { error } = await supa.from('memories').delete().eq('id', id);
+                if (error) throw error;
+                
+                memories = memories.filter(m => m.id !== id);
+                renderMemories();
+                showToast('Foto removida.', 'info');
+            } catch (error) {
+                console.error("Erro ao deletar:", error);
+                showToast('Erro ao remover foto.', 'error');
+            }
         }
 
         function renderPoems() {
@@ -578,7 +621,7 @@
                 
                 card.innerHTML = `
                     <div class="flex justify-between items-start mb-2">
-                        <span class="text-[10px] uppercase tracking-widest text-brand-purple font-semibold">${poem.date}</span>
+                        <span class="text-[10px] uppercase tracking-widest text-brand-purple font-semibold">${poem.date_formatted || poem.date || 'Hoje'}</span>
                         <i class="fa-solid fa-heart text-slate-700 text-xs"></i>
                     </div>
                     <h3 class="text-xl font-serif text-white mb-2">${poem.title}</h3>
@@ -614,7 +657,7 @@
             }, 300);
         }
 
-        function savePoem() {
+        async function savePoem() {
             const title = document.getElementById('new-title').value.trim();
             const content = document.getElementById('new-content').value.trim();
             
@@ -623,33 +666,35 @@
                 return;
             }
 
-            if (editingPoemId) {
-                // Atualizar existente
-                const poemIndex = poems.findIndex(p => p.id === editingPoemId);
-                if (poemIndex > -1) {
-                    poems[poemIndex].title = title;
-                    poems[poemIndex].content = content;
+            showToast('Guardando...', 'info');
+
+            try {
+                if (editingPoemId) {
+                    // Update
+                    const { error } = await supa.from('poems')
+                        .update({ title: title, content: content })
+                        .eq('id', editingPoemId);
+                        
+                    if (error) throw error;
+                    showToast('Poesia atualizada!', 'success');
+                } else {
+                    // Insert
+                    const now = new Date();
+                    const dateStr = `${now.getDate().toString().padStart(2, '0')}/${(now.getMonth()+1).toString().padStart(2, '0')}/${now.getFullYear()}`;
+
+                    const { error } = await supa.from('poems')
+                        .insert([{ title: title, content: content, date_formatted: dateStr }]);
+                        
+                    if (error) throw error;
+                    showToast('Poesia guardada!', 'success');
                 }
-                showToast('Poesia atualizada!', 'success');
-            } else {
-                // Criar novo
-                const now = new Date();
-                const dateStr = `${now.getDate().toString().padStart(2, '0')}/${(now.getMonth()+1).toString().padStart(2, '0')}/${now.getFullYear()}`;
-
-                const newPoem = {
-                    id: Date.now(),
-                    title: title,
-                    date: dateStr,
-                    content: content
-                };
-
-                // Add to top of array
-                poems.unshift(newPoem);
-                showToast('Poesia guardada com sucesso!', 'success');
+                
+                await loadData();
+                closeAddModal();
+            } catch (error) {
+                console.error("Erro ao salvar:", error);
+                showToast('Erro ao guardar poesia.', 'error');
             }
-            
-            closeAddModal();
-            renderPoems();
         }
 
         // --- Edit / Delete Logic ---
@@ -670,12 +715,20 @@
             }, 300);
         }
 
-        function deleteCurrentPoem() {
-            // Apaga diretamente e mostra um toast
-            poems = poems.filter(p => p.id !== currentViewedPoemId);
-            closeViewModal();
-            renderPoems();
-            showToast('Poesia excluída.', 'info');
+        async function deleteCurrentPoem() {
+            showToast('Apagando...', 'info');
+            try {
+                const { error } = await supa.from('poems').delete().eq('id', currentViewedPoemId);
+                if (error) throw error;
+                
+                poems = poems.filter(p => p.id !== currentViewedPoemId);
+                closeViewModal();
+                renderPoems();
+                showToast('Poesia excluída.', 'info');
+            } catch (error) {
+                console.error("Erro ao deletar:", error);
+                showToast('Erro ao excluir.', 'error');
+            }
         }
 
         // --- View Poem Logic ---
@@ -686,7 +739,7 @@
             currentViewedPoemId = id;
 
             document.getElementById('view-title').textContent = poem.title;
-            document.getElementById('view-date').textContent = poem.date;
+            document.getElementById('view-date').textContent = poem.date_formatted || poem.date || 'Hoje';
             document.getElementById('view-content').textContent = poem.content;
 
             // Mostra os botões de edição/exclusão apenas para o Kauã
